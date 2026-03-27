@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Quacking Duck Pond</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 200vh;
+            background: radial-gradient(circle, #e0f7fa 0%, #80deea 100%);
+            font-family: 'Segoe UI', sans-serif;
+            overflow-x: hidden;
+            cursor: crosshair;
+        }
+
+        #duck {
+            position: fixed;
+            font-size: 3.5rem;
+            pointer-events: none;
+            z-index: 1000;
+            will-change: transform;
+            user-select: none;
+            filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.1));
+        }
+
+        .bubble {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 999;
+            animation: rise 1.5s ease-out forwards;
+        }
+
+        @keyframes rise {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-50px) scale(1.5); opacity: 0; }
+        }
+
+        .instructions {
+            position: fixed;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            color: #006064;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="instructions">
+        <h1>Move to lead the duck.</h1>
+        <p>Click anywhere to <strong>Quack!</strong></p>
+    </div>
+
+    <div id="duck">🦆</div>
+
+    <script>
+        const duck = document.getElementById('duck');
+        let mouseX = 0, mouseY = 0;
+        let duckX = 0, duckY = 0;
+        const ease = 0.08;
+
+        // --- DUCK MOVEMENT & BUBBLES ---
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            createBubble(e.clientX, e.clientY);
+        });
+
+        function createBubble(x, y) {
+            if (Math.random() > 0.1) return; // Only create bubbles occasionally
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            bubble.style.left = `${x}px`;
+            bubble.style.top = `${y}px`;
+            document.body.appendChild(bubble);
+            setTimeout(() => bubble.remove(), 1500);
+        }
+
+        function animate() {
+            let dx = mouseX - duckX;
+            let dy = mouseY - duckY;
+            duckX += dx * ease;
+            duckY += dy * ease;
+
+            const direction = dx > 0 ? 'scaleX(-1)' : 'scaleX(1)';
+            // Adding a slight "wobble" to the duck as it moves
+            const wobble = Math.sin(Date.now() / 200) * 5; 
+            
+            duck.style.transform = `translate(${duckX - 30}px, ${duckY - 30}px) ${direction} rotate(${wobble}deg)`;
+
+            requestAnimationFrame(animate);
+        }
+
+        // --- QUACK SOUND (Web Audio API) ---
+        document.addEventListener('click', () => {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.type = 'sawtooth'; 
+            oscillator.frequency.setValueAtTime(400, audioCtx.currentTime); 
+            oscillator.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.1);
+
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.2);
+            
+            // Visual "Quack" feedback
+            duck.style.fontSize = '4.5rem';
+            setTimeout(() => duck.style.fontSize = '3.5rem', 100);
+        });
+
+        animate();
+    </script>
+</body>
+  </html>
+
