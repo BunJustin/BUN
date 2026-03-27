@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Duck Pond: Bread Edition</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            background: radial-gradient(circle, #4fc3f7 0%, #29b6f6 100%);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            cursor: crosshair;
+        }
+
+        #duck {
+            position: fixed;
+            font-size: 4rem;
+            pointer-events: none;
+            z-index: 1000;
+            transition: font-size 0.2s;
+            user-select: none;
+        }
+
+        .bread {
+            position: fixed;
+            font-size: 2rem;
+            pointer-events: none;
+            z-index: 500;
+            animation: splash 0.5s ease-out;
+        }
+
+        @keyframes splash {
+            0% { transform: scale(0) rotate(0deg); }
+            50% { transform: scale(1.2) rotate(15deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+
+        .ui {
+            position: fixed;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ui">
+        <h1>Click to throw bread! 🍞</h1>
+        <p>The duck is hungry.</p>
+    </div>
+
+    <div id="duck">🦆</div>
+
+    <script>
+        const duck = document.getElementById('duck');
+        let mouseX = 0, mouseY = 0;
+        let duckX = window.innerWidth / 2, duckY = window.innerHeight / 2;
+        let activeBread = null;
+        
+        const easeFollow = 0.05; // Normal speed
+        const easeHungry = 0.12; // Speed when seeing bread
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        document.addEventListener('mousedown', (e) => {
+            // Remove old bread if it exists
+            if (activeBread) activeBread.remove();
+
+            // Create new bread
+            const bread = document.createElement('div');
+            bread.className = 'bread';
+            bread.innerHTML = '🍞';
+            bread.style.left = `${e.clientX - 15}px`;
+            bread.style.top = `${e.clientY - 15}px`;
+            document.body.appendChild(bread);
+            
+            activeBread = {
+                element: bread,
+                x: e.clientX,
+                y: e.clientY
+            };
+
+            quack();
+        });
+
+        function quack() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(450, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.05, ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.15);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.15);
+        }
+
+        function animate() {
+            // Determine target: Bread or Mouse?
+            let targetX = activeBread ? activeBread.x : mouseX;
+            let targetY = activeBread ? activeBread.y : mouseY;
+            let currentEase = activeBread ? easeHungry : easeFollow;
+
+            let dx = targetX - duckX;
+            let dy = targetY - duckY;
+
+            // Move duck
+            duckX += dx * currentEase;
+            duckY += dy * currentEase;
+
+            // Check if duck "ate" the bread
+            if (activeBread) {
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist < 30) {
+                    activeBread.element.remove();
+                    activeBread = null;
+                    // Happy "jump" effect
+                    duck.style.transform += ' scale(1.5)';
+                }
+            }
+
+            const direction = dx > 0 ? 'scaleX(-1)' : 'scaleX(1)';
+            const waddle = Math.sin(Date.now() / 150) * 8;
+            
+            duck.style.transform = `translate(${duckX - 40}px, ${duckY - 40}px) ${direction} rotate(${waddle}deg)`;
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+  </html>
+
